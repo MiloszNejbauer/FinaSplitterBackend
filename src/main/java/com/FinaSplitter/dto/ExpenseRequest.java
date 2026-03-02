@@ -12,4 +12,5 @@ public class ExpenseRequest {
     private String paidById;
     private String groupId;
     private Map<String, Double> participantShares;
+    private Boolean isSettlement;
 }

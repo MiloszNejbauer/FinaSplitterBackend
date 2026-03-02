@@ -1,14 +1,18 @@
 package com.FinaSplitter.service;
 
 import com.FinaSplitter.dto.ExpenseRequest;
+import com.FinaSplitter.model.Group;
 import com.FinaSplitter.repository.ExpenseRepository;
 import com.FinaSplitter.model.Expense;
+import com.FinaSplitter.repository.GroupRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 @Service
 public class ExpenseService {
@@ -35,16 +39,18 @@ public class ExpenseService {
         expense.setPaidById(request.getPaidById());
         expense.setGroupId(request.getGroupId());
         expense.setParticipants(request.getParticipantShares());
+        expense.setIsSettlement(request.getIsSettlement());
+        expense.setCreatedAt(LocalDateTime.now());
 
         return expenseRepository.save(expense);
     }
 
     public List<Expense> getExpensesByGroup(String groupId) {
-        return expenseRepository.findAllByGroupId(groupId);
+        return expenseRepository.findAllByGroupIdOrderByCreatedAtDesc(groupId);
     }
 
     public Map<String, Double> calculateBalances(String groupId) {
-        List<Expense> expenses = expenseRepository.findAllByGroupId(groupId);
+        List<Expense> expenses = expenseRepository.findAllByGroupIdOrderByCreatedAtDesc(groupId);
         Map<String, Double> balances = new HashMap<>();
 
         for (Expense expense : expenses) {
@@ -61,5 +67,48 @@ public class ExpenseService {
             }
         }
         return balances;
+    }
+
+    @Autowired
+    private GroupRepository groupRepository;
+
+    public Double calculateTotalBalancesForUser(String email) {
+        List<Group> userGroups = groupRepository.findAllByMemberEmailsContaining(email);
+
+        double totalBalance = 0.0;
+
+        for (Group group : userGroups) {
+            Map<String, Double> groupBalances = calculateBalances(group.getId());
+            totalBalance += groupBalances.getOrDefault(email, 0.0);
+        }
+        return totalBalance;
+    }
+
+    public Map<String, Double> getUserMonthlyBalances(String email) {
+        List<Group> userGroups = groupRepository.findAllByMemberEmailsContaining(email);
+        Map<String, Double> monthlyBalances = new TreeMap<>();
+
+        for (Group group : userGroups) {
+            List<Expense> expenses = expenseRepository.findAllByGroupIdOrderByCreatedAtDesc(group.getId());
+
+            for (Expense expense : expenses) {
+                String monthYear = expense.getCreatedAt().getMonth().toString() + " " + expense.getCreatedAt().getYear();
+
+                double
+                         userEffect = 0.0;
+
+                if (expense.getPaidById().equalsIgnoreCase(email)) {
+                    userEffect += expense.getTotalAmount();
+                }
+
+                if (expense.getParticipants().containsKey(email)) {
+                    userEffect -= expense.getParticipants().get(email);
+                }
+
+                double actualCost = expense.getParticipants().getOrDefault(email, 0.0);
+                monthlyBalances.put(monthYear, monthlyBalances.getOrDefault(monthYear, 0.0) + actualCost);
+            }
+        }
+        return monthlyBalances;
     }
 }

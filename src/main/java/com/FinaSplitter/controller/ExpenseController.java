@@ -3,14 +3,15 @@ package com.FinaSplitter.controller;
 import com.FinaSplitter.dto.ExpenseRequest;
 import com.FinaSplitter.model.Expense;
 import com.FinaSplitter.service.ExpenseService;
-import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("api/expenses")
 public class ExpenseController {
@@ -38,5 +39,47 @@ public class ExpenseController {
     @GetMapping("/group/{groupId}/balances")
     public ResponseEntity<Map<String, Double>> getGroupBalances(@PathVariable String groupId) {
         return ResponseEntity.ok(expenseService.calculateBalances(groupId));
+    }
+
+    @GetMapping("/user/{email}/total-balance")
+    public ResponseEntity<Double> getTotalBalance(@PathVariable String email) {
+        try {
+            Double total = expenseService.calculateTotalBalancesForUser(email);
+            return ResponseEntity.ok(total);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/settle")
+    public ResponseEntity<?> settleDebt(@RequestParam String groupId,
+                                        @RequestParam String fromEmail,
+                                        @RequestParam String toEmail,
+                                        @RequestParam Double amount) {
+        try {
+            ExpenseRequest settlementRequest = new ExpenseRequest();
+            settlementRequest.setGroupId(groupId);
+            settlementRequest.setDescription("Rozliczenie: " + fromEmail + " -> " + toEmail);
+            settlementRequest.setTotalAmount(amount);
+            settlementRequest.setPaidById(fromEmail);
+            settlementRequest.setIsSettlement(true);
+
+            Map<String, Double> shares = new HashMap<>();
+            shares.put(toEmail, amount);
+            settlementRequest.setParticipantShares(shares);
+
+            return ResponseEntity.ok(expenseService.addExpense(settlementRequest));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/user/{email}/monthly-summary")
+    public ResponseEntity<Map<String, Double>> getMonthlySummary(@PathVariable String email) {
+        try {
+            return ResponseEntity.ok(expenseService.getUserMonthlyBalances(email));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
