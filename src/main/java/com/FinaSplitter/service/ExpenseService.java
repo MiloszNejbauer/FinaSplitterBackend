@@ -73,7 +73,7 @@ public class ExpenseService {
     private GroupRepository groupRepository;
 
     public Double calculateTotalBalancesForUser(String email) {
-        List<Group> userGroups = groupRepository.findAllByMemberEmailsContaining(email);
+        List<Group> userGroups = groupRepository.findAllByMembersEmail(email);
 
         double totalBalance = 0.0;
 
@@ -84,29 +84,35 @@ public class ExpenseService {
         return totalBalance;
     }
 
+    // ExpenseService.java
+
     public Map<String, Double> getUserMonthlyBalances(String email) {
-        List<Group> userGroups = groupRepository.findAllByMemberEmailsContaining(email);
+        List<Group> userGroups = groupRepository.findAllByMembersEmail(email);
+        // TreeMap z customowym komparatorem, aby sortować daty (opcjonalne)
         Map<String, Double> monthlyBalances = new TreeMap<>();
 
         for (Group group : userGroups) {
             List<Expense> expenses = expenseRepository.findAllByGroupIdOrderByCreatedAtDesc(group.getId());
 
             for (Expense expense : expenses) {
-                String monthYear = expense.getCreatedAt().getMonth().toString() + " " + expense.getCreatedAt().getYear();
+                // Omijamy rozliczenia (settlements), jeśli chcesz widzieć tylko konsumpcję
+                if (expense.getIsSettlement()) continue;
 
-                double
-                         userEffect = 0.0;
-
-                if (expense.getPaidById().equalsIgnoreCase(email)) {
-                    userEffect += expense.getTotalAmount();
+                // ZABEZPIECZENIE: Jeśli wydatek nie ma daty, użyj daty dzisiejszej lub pomiń
+                String monthYear;
+                if (expense.getCreatedAt() != null) {
+                    monthYear = expense.getCreatedAt().getMonth().toString() + " " + expense.getCreatedAt().getYear();
+                } else {
+                    monthYear = "UNKNOWN"; // Lub np. LocalDateTime.now().getMonth().toString...
                 }
 
-                if (expense.getParticipants().containsKey(email)) {
-                    userEffect -= expense.getParticipants().get(email);
-                }
+                // Pobieramy udział użytkownika z mapy participants
+                // participants: { "email": kwota }
+                Double userShare = expense.getParticipants().get(email);
 
-                double actualCost = expense.getParticipants().getOrDefault(email, 0.0);
-                monthlyBalances.put(monthYear, monthlyBalances.getOrDefault(monthYear, 0.0) + actualCost);
+                if (userShare != null) {
+                    monthlyBalances.put(monthYear, monthlyBalances.getOrDefault(monthYear, 0.0) + userShare);
+                }
             }
         }
         return monthlyBalances;

@@ -17,12 +17,12 @@ public class Group {
     @Id
     private String id;
     private String name;
-    private List<String> memberEmails = new ArrayList<>();
+    private List<GroupMember> members = new ArrayList<>();
 
-    public Group(String name, String creatorEmail) {
+    public Group(String name, GroupMember creator) {
         this.name = name;
-        this.memberEmails = new ArrayList<>();
-        this.memberEmails.add(creatorEmail);
+        this.members = new ArrayList<>();
+        this.members.add(creator);
     }
 
 }

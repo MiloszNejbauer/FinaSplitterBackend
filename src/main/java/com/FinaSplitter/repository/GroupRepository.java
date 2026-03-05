@@ -8,5 +8,7 @@ import java.util.Optional;
 
 public interface GroupRepository extends MongoRepository<Group, String> {
     Optional<Group> findById(String Id);
-    List<Group> findAllByMemberEmailsContaining(String email);
+
+//    List<Group> findAllByMemberEmailsContaining(String email);
+    List<Group> findAllByMembersEmail(String email);
 }

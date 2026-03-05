@@ -1,6 +1,7 @@
 package com.FinaSplitter.service;
 
 import com.FinaSplitter.model.Group;
+import com.FinaSplitter.model.GroupMember;
 import com.FinaSplitter.model.User;
 import com.FinaSplitter.repository.GroupRepository;
 import com.FinaSplitter.repository.UserRepository;
@@ -18,30 +19,36 @@ public class GroupService {
     private UserRepository userRepository;
 
     public Group createGroup(String name, String creatorEmail){
-        Group group = new Group(name, creatorEmail);
+        User creator = userRepository.findByEmailIgnoreCase(creatorEmail).orElseThrow(() -> new RuntimeException("Nie znaleziono twórcy"));
+
+        GroupMember member = new GroupMember(creator.getEmail(), creator.getUsername());
+        Group group = new Group(name, member);
         return groupRepository.save(group);
     }
 
     public Group addUserToGroup(String groupId, String email) throws Exception {
         User newUser = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new Exception("Użytkownik o takim mailu nie istnieje"));
+
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new Exception("Grupa nie znaleziona"));
 
-        String officialEmail = newUser.getEmail();
+        // Sprawdzamy czy już jest w grupie (po mailu)
+        boolean alreadyMember = group.getMembers().stream()
+                .anyMatch(m -> m.getEmail().equalsIgnoreCase(newUser.getEmail()));
 
-        if (group.getMemberEmails().contains(officialEmail)) {
+        if (alreadyMember) {
             throw new Exception("Użytkownik jest już członkiem tej grupy");
         }
 
-        // Automatyczne dodawanie znajomych
-        List<String> currentMembers = group.getMemberEmails();
-        for (String memberEmail : currentMembers) {
-            updateFriendship(officialEmail, memberEmail);
-            updateFriendship(memberEmail, officialEmail);
+        // Automatyczne dodawanie znajomych (używamy maili do relacji)
+        for (GroupMember member : group.getMembers()) {
+            updateFriendship(newUser.getEmail(), member.getEmail());
+            updateFriendship(member.getEmail(), newUser.getEmail());
         }
 
-        group.getMemberEmails().add(officialEmail);
+        // Dodajemy pełny obiekt GroupMember
+        group.getMembers().add(new GroupMember(newUser.getEmail(), newUser.getUsername()));
         return groupRepository.save(group);
     }
 
@@ -55,8 +62,9 @@ public class GroupService {
         });
     }
 
-    public List<Group> getGroupsByUserEmail(String email){
-        return groupRepository.findAllByMemberEmailsContaining(email);
+    public List<Group> getGroupsByUserEmail(String email) {
+        // Musisz zaktualizować GroupRepository, aby szukało wewnątrz listy obiektów
+        return groupRepository.findAllByMembersEmail(email);
     }
 
     public Group getGroupById(String id) {

@@ -58,7 +58,8 @@ public class GroupController {
 
             groupMap.put("id", group.getId());
             groupMap.put("name", group.getName());
-            groupMap.put("memberEmails", group.getMemberEmails());
+            // ZMIANA: Klucz "members" zamiast "memberEmails" dla spójności
+            groupMap.put("members", group.getMembers());
 
             Map<String, Double> balances = expenseService.calculateBalances(group.getId());
             groupMap.put("userBalance", balances.getOrDefault(email, 0.0));
