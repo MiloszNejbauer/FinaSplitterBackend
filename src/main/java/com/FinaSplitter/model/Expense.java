@@ -16,10 +16,14 @@ public class Expense {
     private String id;
     private String description;
     private double totalAmount;
+    private String currency;
     private String paidById;
     private String groupId;
     private Boolean isSettlement = false;
     private LocalDateTime createdAt;
-
     private Map<String, Double> participants;
+
+    // --- POLA WALUTOWE (Rozwiązują błędy w serwisie) ---
+    private Double exchangeRateAtTime; // Kurs waluty z dnia dodania (względem PLN)
+    private Double amountInPln;        // Wartość wydatku przeliczona na PLN (dla statystyk)
 }

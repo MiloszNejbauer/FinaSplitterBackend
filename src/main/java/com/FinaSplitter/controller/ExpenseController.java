@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("api/expenses")
 public class ExpenseController {
@@ -37,7 +36,7 @@ public class ExpenseController {
     }
 
     @GetMapping("/group/{groupId}/balances")
-    public ResponseEntity<Map<String, Double>> getGroupBalances(@PathVariable String groupId) {
+    public ResponseEntity<Map<String, Map<String, Double>>> getGroupBalances(@PathVariable String groupId) {
         return ResponseEntity.ok(expenseService.calculateBalances(groupId));
     }
 

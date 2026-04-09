@@ -1,9 +1,9 @@
 package com.FinaSplitter.controller;
 
+import com.FinaSplitter.dto.GroupCreateRequest;
 import com.FinaSplitter.model.Group;
 import com.FinaSplitter.service.ExpenseService;
 import com.FinaSplitter.service.GroupService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/groups")
 public class GroupController {
-    @Autowired
+
     private final GroupService groupService;
     private final ExpenseService expenseService;
 
@@ -25,8 +25,8 @@ public class GroupController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Group> create(@RequestParam String name, @RequestParam String creatorEmail) {
-        return ResponseEntity.ok(groupService.createGroup(name, creatorEmail));
+    public ResponseEntity<Group> create(@RequestBody GroupCreateRequest request) {
+        return ResponseEntity.ok(groupService.createGroup(request.name(), request.creatorEmail()));
     }
 
     @PostMapping("/{groupId}/add-user")
@@ -55,18 +55,41 @@ public class GroupController {
 
         List<Map<String, Object>> response = groups.stream().map(group -> {
             Map<String, Object> groupMap = new HashMap<>();
-
             groupMap.put("id", group.getId());
             groupMap.put("name", group.getName());
-            // ZMIANA: Klucz "members" zamiast "memberEmails" dla spójności
             groupMap.put("members", group.getMembers());
 
-            Map<String, Double> balances = expenseService.calculateBalances(group.getId());
-            groupMap.put("userBalance", balances.getOrDefault(email, 0.0));
+            // POBIERAMY WIELOWALUTOWY BALANS
+            Map<String, Map<String, Double>> allBalances = expenseService.calculateBalances(group.getId());
+
+            // Pobieramy balans konkretnego użytkownika dla tej grupy
+            Map<String, Double> userCurrencyBalances = allBalances.getOrDefault(email, new HashMap<>());
+
+            // OPCJA: Przeliczamy ten wielowalutowy balans na jedną liczbę (PLN lub domyślną walutę)
+            // Możemy tu użyć podobnej logiki co w calculateTotalBalancesForUser
+            double totalInBase = 0.0;
+
+            // Pobieramy walutę użytkownika (zakładamy PLN jeśli nie chcemy teraz strzelać do bazy po Usera)
+            // Albo po prostu zwracamy tę mapę walut do frontendu, żeby React Native to ładnie wyświetlił.
+
+            groupMap.put("balances", userCurrencyBalances); // Zwracamy np. {"PLN": 50.0, "EUR": -10.0}
+
+            // Jeśli jednak potrzebujesz jednej liczby do szybkiego podglądu:
+            groupMap.put("userBalance", totalInBase);
 
             return groupMap;
         }).collect(Collectors.toList());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{groupId}/convert")
+    public ResponseEntity<?> convertGroupExpenses(@PathVariable String groupId, @RequestParam String targetCurrency) {
+        try {
+            expenseService.convertAllGroupExpensesToCurrency(groupId, targetCurrency.toUpperCase());
+            return ResponseEntity.ok(Map.of("message", "Przeliczono na " + targetCurrency));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

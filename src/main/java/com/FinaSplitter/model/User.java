@@ -1,5 +1,6 @@
 package com.FinaSplitter.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -21,8 +22,11 @@ public class User {
     @Indexed(unique = true)
     private String email;
 
-    private  String password;
     private Set<String> friends = new HashSet<>();
+    private String defaultCurrency = "PLN";
+
+    @JsonIgnore
+    private  String password;
 
     public User(String username, String email, String password){
         this.username = username;

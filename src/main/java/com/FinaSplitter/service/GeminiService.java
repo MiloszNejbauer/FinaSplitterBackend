@@ -20,10 +20,19 @@ public class GeminiService {
             return "{\"error\": \"Brak konfiguracji AI na serwerze\"}";
         }
 
-        // 2. Prosty prompt testowy na początek
-        String prompt = "Przeanalizuj to zdjęcie paragonu i zwróć dane w formacie JSON: " +
-                "{ \"totalAmount\": 0.00, \"storeName\": \"string\" }. " +
-                "Zwróć TYLKO kod JSON.";
+        // 2. Prompt
+        String prompt = "Przeanalizuj to zdjęcie paragonu i zwróć dane w formacie JSON. " +
+                "Struktura: { " +
+                "\"storeName\": \"string\", " +
+                "\"totalAmount\": double, " +
+                "\"currency\": \"string (kod ISO 4217, np. PLN, EUR, USD)\", " +
+                "\"date\": \"YYYY-MM-DD\", " +
+                "\"items\": [ " +
+                "  { \"name\": \"nazwa produktu\", \"price\": cena_jednostkowa_double, \"quantity\": ilosc_double } " +
+                "] " +
+                "}. " +
+                "Zwróć TYLKO czysty JSON. Jeśli nazwa produktu jest ucięta, spróbuj ją uzupełnić logicznie." +
+                "Zwróć uwagę na symbole walut przy kwocie łącznej. Jeśli waluta nie jest jasna, przyjmij PLN.";
 
         try {
             // 3. Inicjalizacja oficjalnego klienta SDK
