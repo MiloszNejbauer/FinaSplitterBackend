@@ -1,5 +1,6 @@
 package com.FinaSplitter.service;
 
+import com.FinaSplitter.dto.DebtSettlement;
 import com.FinaSplitter.dto.ExpenseRequest;
 import com.FinaSplitter.model.Group;
 import com.FinaSplitter.model.User;
@@ -15,10 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ExpenseService {
@@ -187,5 +186,104 @@ public class ExpenseService {
 
             expenseRepository.save(expense);
         }
+    }
+
+    public Map<String, Double> getMemberSpendingSummary(String groupId) {
+        // 1. Pobieramy grupę dla mapowania e-maili na imiona
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono grupy o id: " + groupId));
+
+        Map<String, String> emailToName = group.getMembers().stream()
+                .collect(Collectors.toMap(
+                        com.FinaSplitter.model.GroupMember::getEmail,
+                        com.FinaSplitter.model.GroupMember::getUsername,
+                        (existing, replacement) -> existing));
+
+        // 2. Pobieramy wszystkie wydatki z grupy
+        List<Expense> expenses = expenseRepository.findAllByGroupIdOrderByCreatedAtDesc(groupId);
+        Map<String, Double> summary = new HashMap<>();
+
+        // Inicjalizujemy mapę zerami dla każdego członka grupy
+        for (String name : emailToName.values()) {
+            summary.put(name, 0.0);
+        }
+
+        for (Expense expense : expenses) {
+            // Pomijamy rozliczenia (spłaty), interesują nas tylko realne koszty
+            if (Boolean.TRUE.equals(expense.getIsSettlement()) || expense.getParticipants() == null) {
+                continue;
+            }
+
+            // Pobieramy kurs wymiany z momentu dodania wydatku (domyślnie 1.0 dla PLN)
+            double rate = expense.getExchangeRateAtTime() != null ? expense.getExchangeRateAtTime() : 1.0;
+
+            // Iterujemy po wszystkich uczestnikach tego konkretnego wydatku
+            for (Map.Entry<String, Double> entry : expense.getParticipants().entrySet()) {
+                String participantEmail = entry.getKey();
+                Double shareAmount = entry.getValue();
+
+                if (shareAmount != null) {
+                    String displayName = emailToName.getOrDefault(participantEmail, participantEmail);
+
+                    // Przeliczamy udział na PLN
+                    double shareInPln = shareAmount * rate;
+
+                    // Dodajemy do ogólnego podsumowania danej osoby
+                    summary.put(displayName, summary.getOrDefault(displayName, 0.0) + shareInPln);
+                }
+            }
+        }
+
+        return summary;
+    }
+
+    public List<DebtSettlement> calculateExactDebts(String groupId) {
+        Map<String, Map<String, Double>> allBalances = calculateBalances(groupId);
+        List<DebtSettlement> settlements = new ArrayList<>();
+
+        Group group = groupRepository.findById(groupId).orElseThrow();
+        Map<String, String> emailToName = group.getMembers().stream()
+                .collect(Collectors.toMap(m -> m.getEmail(), m -> m.getUsername()));
+
+        // Grupowanie balansów po walucie
+        Map<String, Map<String, Double>> byCurrency = new HashMap<>();
+        allBalances.forEach((email, currMap) -> {
+            currMap.forEach((curr, amount) -> {
+                byCurrency.computeIfAbsent(curr, k -> new HashMap<>()).put(email, amount);
+            });
+        });
+
+        byCurrency.forEach((currency, balances) -> {
+            List<Map.Entry<String, Double>> debtors = new ArrayList<>();
+            List<Map.Entry<String, Double>> creditors = new ArrayList<>();
+
+            balances.forEach((email, amount) -> {
+                if (amount < -0.01) debtors.add(new AbstractMap.SimpleEntry<>(email, amount));
+                else if (amount > 0.01) creditors.add(new AbstractMap.SimpleEntry<>(email, amount));
+            });
+
+            int d = 0, c = 0;
+            while (d < debtors.size() && c < creditors.size()) {
+                var debtor = debtors.get(d);
+                var creditor = creditors.get(c);
+
+                double amount = Math.min(Math.abs(debtor.getValue()), creditor.getValue());
+                settlements.add(new DebtSettlement(
+                        debtor.getKey(), // Zwracamy email do logiki frontendu
+                        creditor.getKey(),
+                        amount,
+                        currency,
+                        emailToName.getOrDefault(debtor.getKey(), debtor.getKey()), // Imię do wyświetlania
+                        emailToName.getOrDefault(creditor.getKey(), creditor.getKey())
+                ));
+
+                debtor.setValue(debtor.getValue() + amount);
+                creditor.setValue(creditor.getValue() - amount);
+
+                if (Math.abs(debtor.getValue()) < 0.01) d++;
+                if (creditor.getValue() < 0.01) c++;
+            }
+        });
+        return settlements;
     }
 }

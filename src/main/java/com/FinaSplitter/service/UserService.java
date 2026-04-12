@@ -33,7 +33,6 @@ public class UserService {
         user.setUsername(request.username());
         user.setEmail(request.email().toLowerCase());
 
-        // Teraz hasło z DTO na pewno nie jest nullem
         user.setPassword(passwordEncoder.encode(request.password()));
 
         if (user.getFriends() == null) {

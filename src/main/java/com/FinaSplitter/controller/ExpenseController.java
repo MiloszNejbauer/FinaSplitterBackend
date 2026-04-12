@@ -1,5 +1,6 @@
 package com.FinaSplitter.controller;
 
+import com.FinaSplitter.dto.DebtSettlement;
 import com.FinaSplitter.dto.ExpenseRequest;
 import com.FinaSplitter.model.Expense;
 import com.FinaSplitter.service.ExpenseService;
@@ -79,6 +80,18 @@ public class ExpenseController {
             return ResponseEntity.ok(expenseService.getUserMonthlyBalances(email));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ExpenseController.java
+
+    @GetMapping("/group/{groupId}/debts")
+    public ResponseEntity<List<DebtSettlement>> getGroupDebts(@PathVariable String groupId) {
+        try {
+            List<DebtSettlement> debts = expenseService.calculateExactDebts(groupId);
+            return ResponseEntity.ok(debts);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
         }
     }
 }

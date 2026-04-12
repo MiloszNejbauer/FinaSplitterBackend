@@ -92,4 +92,13 @@ public class GroupController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/group/{groupId}/member-spending-summary")
+    public ResponseEntity<Map<String, Double>> getMemberSpendingSummary(@PathVariable String groupId) {
+        try {
+            return ResponseEntity.ok(expenseService.getMemberSpendingSummary(groupId));
+        } catch (Exception e) {
+            return ResponseEntity.status(404).body(null);
+        }
+    }
 }

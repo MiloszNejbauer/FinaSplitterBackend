@@ -35,7 +35,6 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
-            // Dane wyciągasz z obiektu, a nie z parametrów URL
             String token = userService.loginAndReturnToken(loginRequest.email(), loginRequest.password());
 
             Map<String, String> response = new HashMap<>();

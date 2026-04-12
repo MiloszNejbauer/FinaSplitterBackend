@@ -36,11 +36,9 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                // FIX: Customizer.withDefaults() powie Springowi, żeby poszukał Beana corsConfigurationSource
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Pozwalamy na OPTIONS dla wszystkich ścieżek
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/users/register", "/api/users/login", "/error").permitAll()
                         .anyRequest().authenticated()
@@ -51,11 +49,9 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // DODAJ TEGO BEANA - to on rozwiąże problem z CORS na poziomie Security
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Zezwól na swój origin (localhost:8081)
         configuration.setAllowedOrigins(List.of("http://localhost:8081", "http://*.localhost:[*]"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
