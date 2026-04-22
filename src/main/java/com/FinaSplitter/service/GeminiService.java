@@ -51,9 +51,9 @@ public class GeminiService {
             return text.replace("```json", "").replace("```", "").trim();
 
         } catch (Exception e) {
-            System.err.println("Błąd oficjalnego SDK Gemini: " + e.getMessage());
+            System.err.println("Błąd SDK Gemini: " + e.getMessage());
             e.printStackTrace();
-            return "{\"error\": \"Błąd komunikacji z modelem: " + e.getMessage() + "\"}";
+            throw new RuntimeException("Błąd komunikacji z modelem: " + e.getMessage());
         }
     }
 }
