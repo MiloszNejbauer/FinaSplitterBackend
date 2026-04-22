@@ -52,7 +52,6 @@ public class UserService {
         return user;
     }
 
-    // Zmień typ zwracany z Set<String> na listę obiektów User (lub dedykowane FriendDTO)
     public List<Map<String, String>> getUserFriendsData(String email) throws Exception {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new Exception("Użytkownik nie istnieje"));
@@ -80,7 +79,6 @@ public class UserService {
         User friend = userRepository.findByEmailIgnoreCase(friendEmail)
                 .orElseThrow(() -> new Exception("Użytkownik o podanym adresie e-mail nie istnieje w systemie"));
 
-        // Zabezpieczenie przed Null na liście znajomych
         if (currentUser.getFriends() == null) currentUser.setFriends(new HashSet<>());
         if (friend.getFriends() == null) friend.setFriends(new HashSet<>());
 
@@ -95,7 +93,6 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new Exception("Nie znaleziono użytkownika"));
 
-        // Bezpieczne porównanie hasła przesłanego z zahaszowanym hasłem w bazie
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new Exception("Nieprawidłowe hasło");
         }
@@ -103,12 +100,10 @@ public class UserService {
         return jwtUtils.generateToken(user.getEmail());
     }
 
-    // W klasie UserService
     public User updateDefaultCurrency(String email, String newCurrency) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RuntimeException("Użytkownik nie znaleziony"));
 
-        // Walidacja - upewnij się, że waluta jest wielkimi literami i nie jest nullem
         if (newCurrency == null || newCurrency.isBlank()) {
             throw new RuntimeException("Waluta nie może być pusta");
         }
@@ -117,7 +112,6 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    // W klasie UserService.java
     public User getUserByEmail(String email) {
         return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RuntimeException("Użytkownik o mailu " + email + " nie istnieje."));

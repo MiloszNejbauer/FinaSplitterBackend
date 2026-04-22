@@ -22,11 +22,9 @@ public class ExpenseController {
     @PostMapping("/add")
     public ResponseEntity<?> addExpense(@RequestBody ExpenseRequest request) {
         try {
-            // Przekazujemy cały obiekt request do serwisu
             Expense expense = expenseService.addExpense(request);
             return ResponseEntity.ok(expense);
         } catch (Exception e) {
-            // Jeśli walidacja w serwisie zawiedzie, zwrócimy błąd 400 z opisem
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -55,7 +53,8 @@ public class ExpenseController {
     public ResponseEntity<?> settleDebt(@RequestParam String groupId,
                                         @RequestParam String fromEmail,
                                         @RequestParam String toEmail,
-                                        @RequestParam Double amount) {
+                                        @RequestParam Double amount,
+                                        @RequestParam String currency) {
         try {
             ExpenseRequest settlementRequest = new ExpenseRequest();
             settlementRequest.setGroupId(groupId);
@@ -63,6 +62,7 @@ public class ExpenseController {
             settlementRequest.setTotalAmount(amount);
             settlementRequest.setPaidById(fromEmail);
             settlementRequest.setIsSettlement(true);
+            settlementRequest.setCurrency(currency);
 
             Map<String, Double> shares = new HashMap<>();
             shares.put(toEmail, amount);
@@ -82,8 +82,6 @@ public class ExpenseController {
             return ResponseEntity.internalServerError().build();
         }
     }
-
-    // ExpenseController.java
 
     @GetMapping("/group/{groupId}/debts")
     public ResponseEntity<List<DebtSettlement>> getGroupDebts(@PathVariable String groupId) {

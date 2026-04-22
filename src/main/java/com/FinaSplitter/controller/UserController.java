@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/users")
@@ -48,7 +47,6 @@ public class UserController {
     @GetMapping("/friends")
     public ResponseEntity<?> getFriends(@RequestParam String email) {
         try {
-            // Wywołujemy nową metodę serwisu
             return ResponseEntity.ok(userService.getUserFriendsData(email));
         } catch (Exception e) {
             return ResponseEntity.status(404).body(e.getMessage());
@@ -65,11 +63,10 @@ public class UserController {
         }
     }
 
-    // W klasie UserController
     @PatchMapping("/settings/currency")
     public ResponseEntity<?> updateCurrency(@RequestBody CurrencyUpdateRequest request, Authentication authentication) {
         try {
-            String email = authentication.getName(); // Wyciąga email z tokena JWT
+            String email = authentication.getName();
             User updatedUser = userService.updateDefaultCurrency(email, request.currency());
             return ResponseEntity.ok(updatedUser);
         } catch (Exception e) {
@@ -77,17 +74,14 @@ public class UserController {
         }
     }
 
-    // W klasie UserController.java (pamiętaj o @RequestMapping("/api/users") lub podobnym)
-
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser(Authentication authentication) {
         try {
-            // getName() w Spring Security zazwyczaj zwraca email/username z tokena
             String email = authentication.getName();
             User user = userService.getUserByEmail(email);
             return ResponseEntity.ok(user);
         } catch (Exception e) {
-            return ResponseEntity.status(401).build(); // Nieautoryzowany
+            return ResponseEntity.status(401).build();
         }
     }
 }

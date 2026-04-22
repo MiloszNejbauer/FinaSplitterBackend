@@ -33,7 +33,6 @@ public class GroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new Exception("Grupa nie znaleziona"));
 
-        // Sprawdzamy czy już jest w grupie (po mailu)
         boolean alreadyMember = group.getMembers().stream()
                 .anyMatch(m -> m.getEmail().equalsIgnoreCase(newUser.getEmail()));
 
@@ -41,13 +40,11 @@ public class GroupService {
             throw new Exception("Użytkownik jest już członkiem tej grupy");
         }
 
-        // Automatyczne dodawanie znajomych (używamy maili do relacji)
         for (GroupMember member : group.getMembers()) {
             updateFriendship(newUser.getEmail(), member.getEmail());
             updateFriendship(member.getEmail(), newUser.getEmail());
         }
 
-        // Dodajemy pełny obiekt GroupMember
         group.getMembers().add(new GroupMember(newUser.getEmail(), newUser.getUsername()));
         return groupRepository.save(group);
     }
@@ -63,7 +60,6 @@ public class GroupService {
     }
 
     public List<Group> getGroupsByUserEmail(String email) {
-        // Musisz zaktualizować GroupRepository, aby szukało wewnątrz listy obiektów
         return groupRepository.findAllByMembersEmail(email);
     }
 

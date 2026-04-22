@@ -59,22 +59,14 @@ public class GroupController {
             groupMap.put("name", group.getName());
             groupMap.put("members", group.getMembers());
 
-            // POBIERAMY WIELOWALUTOWY BALANS
             Map<String, Map<String, Double>> allBalances = expenseService.calculateBalances(group.getId());
 
-            // Pobieramy balans konkretnego użytkownika dla tej grupy
             Map<String, Double> userCurrencyBalances = allBalances.getOrDefault(email, new HashMap<>());
 
-            // OPCJA: Przeliczamy ten wielowalutowy balans na jedną liczbę (PLN lub domyślną walutę)
-            // Możemy tu użyć podobnej logiki co w calculateTotalBalancesForUser
             double totalInBase = 0.0;
 
-            // Pobieramy walutę użytkownika (zakładamy PLN jeśli nie chcemy teraz strzelać do bazy po Usera)
-            // Albo po prostu zwracamy tę mapę walut do frontendu, żeby React Native to ładnie wyświetlił.
+            groupMap.put("balances", userCurrencyBalances);
 
-            groupMap.put("balances", userCurrencyBalances); // Zwracamy np. {"PLN": 50.0, "EUR": -10.0}
-
-            // Jeśli jednak potrzebujesz jednej liczby do szybkiego podglądu:
             groupMap.put("userBalance", totalInBase);
 
             return groupMap;

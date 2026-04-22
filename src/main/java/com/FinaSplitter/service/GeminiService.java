@@ -14,13 +14,11 @@ public class GeminiService {
     private String apiKey;
 
     public String scanReceipt(byte[] imageBytes) {
-        // 1. Zabezpieczenie przed brakiem klucza
         if (apiKey == null || apiKey.isEmpty() || apiKey.contains("google.api.key")) {
             System.err.println("BŁĄD: Brak klucza API Google w application.properties!");
             return "{\"error\": \"Brak konfiguracji AI na serwerze\"}";
         }
 
-        // 2. Prompt
         String prompt = "Przeanalizuj to zdjęcie paragonu i zwróć dane w formacie JSON. " +
                 "Struktura: { " +
                 "\"storeName\": \"string\", " +
@@ -32,29 +30,24 @@ public class GeminiService {
                 "] " +
                 "}. " +
                 "Zwróć TYLKO czysty JSON. Jeśli nazwa produktu jest ucięta, spróbuj ją uzupełnić logicznie." +
-                "Zwróć uwagę na symbole walut przy kwocie łącznej. Jeśli waluta nie jest jasna, przyjmij PLN.";
+                "Zwróć uwagę na symbole walut przy kwocie łącznej. Jeśli waluta nie jest oczywista, przyjmij PLN.";
 
         try {
-            // 3. Inicjalizacja oficjalnego klienta SDK
             Client client = Client.builder().apiKey(apiKey).build();
 
-            // 4. Budowanie zawartości (tekst + zdjęcie) za pomocą wbudowanych klas SDK
             Content content = Content.fromParts(
                     Part.fromText(prompt),
                     Part.fromBytes(imageBytes, "image/jpeg")
             );
 
-            // 5. Wywołanie modelu (używamy stabilnego gemini-2.5-flash)
             GenerateContentResponse response = client.models.generateContent("gemini-2.5-flash", content, null);
 
-            // 6. Odczyt tekstu - SDK samo obsługuje zawiłą strukturę odpowiedzi!
             String text = response.text();
 
             if (text == null || text.isEmpty()) {
-                return "{}"; // Pusta odpowiedź awaryjna
+                return "{}";
             }
 
-            // Oczyszczenie, gdyby model dodał np. ```json ... ```
             return text.replace("```json", "").replace("```", "").trim();
 
         } catch (Exception e) {

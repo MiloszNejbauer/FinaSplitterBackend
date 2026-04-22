@@ -4,7 +4,6 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -23,7 +22,6 @@ public class Expense {
     private LocalDateTime createdAt;
     private Map<String, Double> participants;
 
-    // --- POLA WALUTOWE (Rozwiązują błędy w serwisie) ---
-    private Double exchangeRateAtTime; // Kurs waluty z dnia dodania (względem PLN)
-    private Double amountInPln;        // Wartość wydatku przeliczona na PLN (dla statystyk)
+    private Double exchangeRateAtTime;
+    private Double amountInPln;
 }

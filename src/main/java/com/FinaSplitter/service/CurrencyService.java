@@ -14,8 +14,6 @@ public class CurrencyService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    // Adnotacja @Cacheable sprawia, że jeśli raz pobierzemy kurs "EUR",
-    // Spring zapamięta go i przy kolejnym wywołaniu nie połączy się z NBP.
     @Cacheable(value = "currencies", key = "#currencyCode")
     public double getExchangeRate(String currencyCode) {
         if (currencyCode == null || currencyCode.equalsIgnoreCase("PLN")) {
@@ -35,12 +33,11 @@ public class CurrencyService {
             return 1.0;
         } catch (Exception e) {
             System.err.println("Błąd NBP dla " + currencyCode + ": " + e.getMessage());
-            return 1.0; // Wartość bezpieczna w razie awarii API
+            return 1.0;
         }
     }
 
     public double convert(double amount, String fromCurrency, String toCurrency) {
-        // Zabezpieczenie przed NPE
         if (fromCurrency == null) fromCurrency = "PLN";
         if (toCurrency == null) toCurrency = "PLN";
 
@@ -58,7 +55,6 @@ public class CurrencyService {
             return 1.0;
         }
 
-        // NBP wymaga formatu YYYY-MM-DD
         String formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE);
         String url = "http://api.nbp.pl/api/exchangerates/rates/a/" +
                 currencyCode.toLowerCase() + "/" + formattedDate + "/?format=json";
@@ -70,8 +66,6 @@ public class CurrencyService {
                 return (double) rates.get(0).get("mid");
             }
         } catch (Exception e) {
-            // Jeśli NBP nie ma kursu z tego dnia (np. weekend/święto),
-            // pobieramy kurs aktualny jako fallback
             System.err.println("Brak kursu historycznego dla " + currencyCode + " z dnia " + formattedDate + ". Pobieram bieżący.");
             return getExchangeRate(currencyCode);
         }

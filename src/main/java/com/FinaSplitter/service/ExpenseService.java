@@ -189,7 +189,6 @@ public class ExpenseService {
     }
 
     public Map<String, Double> getMemberSpendingSummary(String groupId) {
-        // 1. Pobieramy grupę dla mapowania e-maili na imiona
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Nie znaleziono grupy o id: " + groupId));
 
@@ -199,25 +198,20 @@ public class ExpenseService {
                         com.FinaSplitter.model.GroupMember::getUsername,
                         (existing, replacement) -> existing));
 
-        // 2. Pobieramy wszystkie wydatki z grupy
         List<Expense> expenses = expenseRepository.findAllByGroupIdOrderByCreatedAtDesc(groupId);
         Map<String, Double> summary = new HashMap<>();
 
-        // Inicjalizujemy mapę zerami dla każdego członka grupy
         for (String name : emailToName.values()) {
             summary.put(name, 0.0);
         }
 
         for (Expense expense : expenses) {
-            // Pomijamy rozliczenia (spłaty), interesują nas tylko realne koszty
             if (Boolean.TRUE.equals(expense.getIsSettlement()) || expense.getParticipants() == null) {
                 continue;
             }
 
-            // Pobieramy kurs wymiany z momentu dodania wydatku (domyślnie 1.0 dla PLN)
             double rate = expense.getExchangeRateAtTime() != null ? expense.getExchangeRateAtTime() : 1.0;
 
-            // Iterujemy po wszystkich uczestnikach tego konkretnego wydatku
             for (Map.Entry<String, Double> entry : expense.getParticipants().entrySet()) {
                 String participantEmail = entry.getKey();
                 Double shareAmount = entry.getValue();
@@ -225,10 +219,8 @@ public class ExpenseService {
                 if (shareAmount != null) {
                     String displayName = emailToName.getOrDefault(participantEmail, participantEmail);
 
-                    // Przeliczamy udział na PLN
                     double shareInPln = shareAmount * rate;
 
-                    // Dodajemy do ogólnego podsumowania danej osoby
                     summary.put(displayName, summary.getOrDefault(displayName, 0.0) + shareInPln);
                 }
             }
@@ -245,7 +237,6 @@ public class ExpenseService {
         Map<String, String> emailToName = group.getMembers().stream()
                 .collect(Collectors.toMap(m -> m.getEmail(), m -> m.getUsername()));
 
-        // Grupowanie balansów po walucie
         Map<String, Map<String, Double>> byCurrency = new HashMap<>();
         allBalances.forEach((email, currMap) -> {
             currMap.forEach((curr, amount) -> {
@@ -269,11 +260,11 @@ public class ExpenseService {
 
                 double amount = Math.min(Math.abs(debtor.getValue()), creditor.getValue());
                 settlements.add(new DebtSettlement(
-                        debtor.getKey(), // Zwracamy email do logiki frontendu
+                        debtor.getKey(),
                         creditor.getKey(),
                         amount,
                         currency,
-                        emailToName.getOrDefault(debtor.getKey(), debtor.getKey()), // Imię do wyświetlania
+                        emailToName.getOrDefault(debtor.getKey(), debtor.getKey()),
                         emailToName.getOrDefault(creditor.getKey(), creditor.getKey())
                 ));
 

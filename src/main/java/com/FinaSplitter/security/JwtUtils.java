@@ -1,7 +1,9 @@
 package com.FinaSplitter.security;
 
+
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -9,11 +11,15 @@ import java.util.Date;
 
 @Component
 public class JwtUtils {
-    // W produkcji przenieś to do application.properties
-    private final String jwtSecret = "TwojBardzoDlugiISkomplikowanyKluczDoSzyfrowaniaJWT123456";
-    private final int jwtExpirationMs = 86400000; // 24h
 
-    private final Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    private final String jwtSecret;
+    private final int jwtExpirationMs = 86400000; // 24h
+    private final Key key;
+
+    public JwtUtils(@Value("${security.jwt.secret}") String jwtSecret) {
+        this.jwtSecret = jwtSecret;
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
 
     public String generateToken(String email) {
         return Jwts.builder()
